@@ -58,4 +58,4 @@ tidy_data <- merged_data_final %>% group_by(subject, activity) %>% summarise_all
 
 
 ## Storing data set in a txt file
-write.table(tidy_data, file = "tidy_data.txt")
+write.table(tidy_data, file = "tidy_data.txt", row.names = FALSE)
