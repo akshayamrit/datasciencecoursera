@@ -1,3 +1,6 @@
 [submodule "ProgrammingAssignment2"]
 	path = ProgrammingAssignment2
 	url = https://github.com/akshayamrit/ProgrammingAssignment2
+[submodule "Exploratory Data Analysis/ExData_Plotting1"]
+	path = Exploratory Data Analysis/ExData_Plotting1
+	url = https://github.com/akshayamrit/ExData_Plotting1.git
