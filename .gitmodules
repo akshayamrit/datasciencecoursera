@@ -4,3 +4,6 @@
 [submodule "Exploratory Data Analysis/ExData_Plotting1"]
 	path = Exploratory Data Analysis/ExData_Plotting1
 	url = https://github.com/akshayamrit/ExData_Plotting1.git
+[submodule "Reproducible Research/RepData_PeerAssessment1"]
+	path = Reproducible Research/RepData_PeerAssessment1
+	url = https://github.com/akshayamrit/RepData_PeerAssessment1.git
