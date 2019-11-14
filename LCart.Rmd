@@ -1,0 +1,152 @@
+---
+title: "LCart"
+author: "Akshay Amrit"
+date: "14/11/2019"
+output: html_document
+---
+
+## Data
+
+Loading Data
+```{r}
+library(readxl)
+LCart <- read_excel("~/Business Case_Lendingkart (1).xlsx",
+                    sheet = "Data", col_types = c("date",
+                                                  "numeric", "numeric", "text", "text",
+                                                  "text", "text", "text", "numeric",
+                                                  "numeric", "text", "numeric", "numeric"))
+```
+
+
+## Task
+
+- What were the total sales for each category in Wk 29?
+- Share the sales and margin trends by category over the last 4 weeks basis the total orders, cost and margins. Create charts to depict the trends
+- What were the Top 5 selling products in terms of  units over the 4 weeks and what were their margin (in % and $)?
+- Which category had the best sales growth over the 4 weeks?
+- Which category had the worst sales growth over the 4 weeks, and what would you do to improve performance?
+- What was the average order value in Electronics over the 4 weeks? How could this be increased?
+- Identify the Top 10 selling item types by value and units, and propose 3 ideas to grow sales even more on them
+- List the Top 5 and Bottom 5 sellers by value over the 4 weeks, and show their sales by week.
+- Highlight the best and worst thing about the business and what are the areas we can improve in.
+- Give 3 months sales projection for top 3 categories with the suggestive actions to achieve the same
+- Provide any other insights that you can find from the data source
+
+
+## Data Cleaning
+
+```{r}
+library(tidyverse)
+colnames(LCart) <- str_replace_all(colnames(LCart), " ", ".")
+LCart$Order.Date <- strptime(LCart$Order.Date, format = "%Y-%m-%d")
+LCart$Order.Date <- format(LCart$Order.Date, "%d/%m/%Y")
+LCart$`Margin.%` <- str_replace_all(LCart$`Margin.%`, "%", "")
+LCart$`Margin.%` <- as.numeric(LCart$`Margin.%`)
+```
+## Data Analysis
+
+```{r}
+str(LCart)
+
+# No of duplicate Order ID
+nrow(LCart) - length(unique(LCart$Order.ID))
+
+```
+
+## Task 1
+What were the total sales for each category in Wk 29?
+```{r}
+LCart %>% filter(Week.Number == 29) %>% 
+      group_by(Category) %>% 
+      summarize(Sales.Per.Cat = sum(Price))
+```
+
+## Task 2
+Share the sales and margin trends by category over the last 4 weeks basis the total orders, cost and margins. Create charts to depict the trends
+```{r}
+TwoTable <- LCart %>% 
+      filter(Week.Number > 27) %>% 
+      group_by(Category, Week.Number) %>% 
+      summarize(Sales = sum(Quantity.sold), Margin = sum(`Margin.%`/100 * Cost))
+g <- ggplot(data = TwoTable)
+g + geom_line(aes(x = Week.Number, y = Sales, group = Category, colour = Category)) + 
+      geom_point(aes(x = Week.Number, y = Sales, group = Category, colour = Category))
+g + geom_line(aes(x = Week.Number, y = Margin, group = Category, colour = Category)) + 
+      geom_point(aes(x = Week.Number, y = Margin, group = Category, colour = Category))
+```
+
+
+## Task 3
+What were the Top 5 selling products in terms of  units over the 4 weeks and what were their margin (in % and $)?
+```{r}
+LCart <- LCart %>% mutate(Margin = Price - Cost)
+Table.Three <- LCart %>%
+      filter(Week.Number > 27) %>%
+      group_by(Item.Title,Bar.Code) %>%
+      summarize(Quantity = sum(Quantity.sold),TotalMargin = sum(Margin), TotalCost = sum(Cost), Margin.Perc = (TotalMargin / TotalCost) * 100) %>%
+      arrange(desc(Quantity))
+head(as.data.frame(Table.Three), n = 5)
+```
+
+## Task 4
+Which category had the best sales growth over the 4 weeks?
+```{r}
+Table.Four <- LCart %>%
+      filter(Week.Number > 27) %>%
+      group_by(Category, Week.Number) %>%
+      summarize(Sales = sum(Price)) %>%
+      spread(Week.Number, Sales)
+Table.Four$`28` <- replace_na(Table.Four$`28`, 0)
+colnames(Table.Four) <- c("Category", "Week1", "Week2", "Week3", "Week4")
+Table.Four <- Table.Four %>% group_by(Category) %>% mutate(Sales.Growth = Week4 - Week1, Growth.Margin = Sales.Growth/Week1 * 100) %>% arrange(desc(Sales.Growth))
+Table.Four[1,]
+```
+
+## Task 5
+Which category had the worst sales growth over the 4 weeks, and what would you do to improve performance?
+```{r}
+Table.Four[nrow(Table.Four),]
+```
+
+## Task 6
+What was the average order value in Electronics over the 4 weeks? How could this be increased?
+```{r}
+LCart %>% filter(Week.Number > 27) %>% 
+      group_by(Order.ID, Category) %>% 
+      summarize(Order.Value = sum(Price)) %>%
+      group_by(Category) %>%
+      summarize(Average.Order.Value = mean(Order.Value)) %>%
+      filter(Category == "Electronics")
+```
+
+## Task 7
+Identify the Top 10 selling item types by value and units, and propose 3 ideas to grow sales even more on them
+```{r}
+Table.Seven <- LCart %>% group_by(Item.Type) %>%
+      summarize(Value = sum(Price), Units = sum(Quantity.sold))
+
+#Top 10 selling Item Type by Value
+head(Table.Seven %>% arrange(desc(Value)), n = 10)
+
+#Top 10 selling Item Type by Units
+head(Table.Seven %>% arrange(desc(Units)), n = 10)
+```
+
+## Task 8
+List the Top 5 and Bottom 5 sellers by value over the 4 weeks, and show their sales by week
+```{r}
+Table.Eight <- LCart %>%
+      filter(Week.Number > 27) %>%
+      group_by(Seller.Name) %>%
+      summarize(Value = sum(Price))
+
+# Top 5 sellers by Value
+head(Table.Eight %>% arrange(desc(Value)), n = 5)
+
+# Top 5 sellers by Value
+head(Table.Eight %>% arrange(Value), n = 5)
+```
+
+## Task 9
+Highlight the best and worst thing about the business and what are the areas we can improve in.  
+?????
