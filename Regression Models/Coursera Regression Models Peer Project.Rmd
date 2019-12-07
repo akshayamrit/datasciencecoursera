@@ -1,0 +1,122 @@
+---
+title: "Coursera Regression Models Peer Project"
+author: "Akshay Amrit"
+date: "5th December, 2019"
+output: pdf_document
+---
+
+
+## Summary
+This report is the final course project for the course [**Regression Models**](https://www.coursera.org/learn/regression-models/home/welcome) which is a part of [**Data Science Specialization**](https://www.coursera.org/specializations/jhu-data-science) by Johns Hopkins University on Coursera.  
+The objective of this course is to answer the questions:  
+- **Is an automatic or manual transmission better for MPG?**  
+- **Quantify the MPG difference between automatic and manual transmissions?**  
+Simply put, we want to determine which mode of transmission consumes less fuel.  
+We will be using "**mtcars**" dataset which is available in "**datasets**" package. To find the answer to our questions,we will start with exploratory data analysis to get a better understanding of what our data looks like and which columns are correlated to MPG. To confirm our conclusion from exploratory data analysis, we will find the best model possible for our data using step function and conclude that **Switching to manual transmission will increase MPG by 1.8.** We will move to inference section from here and perform a t-test on our base model to conclude that **the difference in estimate between transmission is 7.24494 in favour of manual transmission.** We will plot some residual plots and perform diagnostic to confirm whether we made any wrong assumptions during the whole process.  
+  
+  
+## Loading Libraries  
+```{r results='hide', message=FALSE, warning=FALSE}
+library(datasets)
+library(ggplot2)
+```
+  
+  
+## Data Description and Processing  
+We analyse "mtcars" using exploratory data analysis techniques and regression models to compare the effect of different transmission techniques i.e. Automatic or Manual on MPG (Miles per Galon).  
+  
+The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models).  
+This dataset is a data frame with 32 observations on 11 (numeric) variables.  
+  
+[, 1]	mpg:	Miles/(US) gallon  
+[, 2]	cyl:	Number of cylinders  
+[, 3]	disp:	Displacement (cu.in.)  
+[, 4]	hp:	Gross horsepower  
+[, 5]	drat:	Rear axle ratio  
+[, 6]	wt:	Weight (1000 lbs)  
+[, 7]	qsec:	1/4 mile time  
+[, 8]	vs:	Engine (0 = V-shaped, 1 = straight)  
+[, 9]	am:	Transmission (0 = automatic, 1 = manual)  
+[,10]	gear:	Number of forward gears  
+[,11]	carb:	Number of carburetors  
+  
+We will now be performing necessary steps required to analyse data.
+```{r}
+data("mtcars")
+mtcars$cyl <- factor(mtcars$cyl)
+mtcars$vs <- factor(mtcars$vs)
+mtcars$gear <- factor(mtcars$gear)
+mtcars$carb <- factor(mtcars$carb)
+mtcars$am <- factor(mtcars$am,labels=c('Automatic','Manual'))
+str(mtcars)
+```
+  
+  
+## Exploratory Data Analysis
+The objective of performing exploratory data analysis is to figure out what is important to answer our question and what isn't. To begin with, let us try to visualise the relation of MPG with Transmission. See **fig 1** in appendix for the boxplot. Looking at the figure, we can safely say that **MPG is higher for manual transmission**.  
+  
+Our next step is to look at every column present in the data set and figure out which columns effect MPG and should be taken into account when we try to create our regression model. See **fig 2** in appendix for scatterplot for the entire dataset. From teh scatterplot, we can see that **cyl, disp, hp, drat, wt and am are strongly correlated to mpg**. We will double check it and qantify this relation in regression section.  
+  
+  
+## Regression  
+  
+#### Model Selection  
+We will perform stepwise model selection to get the best model out of the data available to us. We will start with the model which has all columns as predictors and reduce the predictors one at a time to find out the model which best satisfies our needs. This process is handled by **step** function which runs linear models repeatedly to find the best model using forward and backward elimination. 
+```{r}
+start_model <- lm(mpg~., data = mtcars)
+best_model <- step(start_model, direction = "both")
+```
+  
+The best model obtained using the above method has cyl, hp, wt, am which is close to what we had guessed from our exploratory analysis. To analyse the properties of the model obtained:
+```{r}
+summary(best_model)
+```
+The $R^{2}$ for **best_model** is 0.8659 which confirms that model confirms 87% variance observed in MPG. Using the coefficients we can infer that increasing number of cylinders from 4 to 6 will lead to a drop of 3.03 MPG but increasing it to 8 will lead to a drop of 2.16 MPG. Per unit increase in horsepower will lead to a drop of 0.03 MPG. Per unit increase in weight of the motor vehicle will lead to a drop 2.49 MPG. Changing the mode of Transmission to manual has a positive effect on MPG. **Switching to manual transmission will increase MPG by 1.8.**  
+  
+Let us compare the **best_model** with **base_model** which only contains am as predictor to test the importance of predictors cyl, hp and wt. We define our **null hypothesis** as "**cyl, hp and wt do not contribute towards accuracy of the model.**"
+```{r}
+base_model <- lm(mpg~am, data = mtcars)
+anova(base_model, best_model)
+```
+Using **anova** function, we can reject our null hypothesis as the p-value is significant.  
+  
+#### Inference
+We will perform t-test of the data assuming that Transmission has a normal distribution.
+```{r}
+t.test(mpg~am, data = mtcars)
+```
+From the result, we can conclude that **the difference in estimate between transmission is 7.24494 in favour of manual transmission.**  
+  
+#### Residual Plot and Diagnostic
+To obtain multivariate regression residuals:
+```{r}
+par(mfrow = c(2, 2))
+plot(best_model)
+```  
+  
+From the plots, we can observe that:  
+- The points in **Residuals vs Fitted** plot seems to be randomly scattered which supports independence condition.  
+- Most of the points on **Normal Q-Q** plot lie on the line which indicates that the points are normally distributed.  
+- The **Scale-Location** plot consists of points scattered in a constant band pattern, indicating constant variance.  
+- Since all points are within the 0.05 lines, the **Residuals vs. Leverage** concludes that there are no outliers.  
+```{r}
+sum((abs(dfbetas(best_model)))>1)
+```
+  
+  
+## Conclusion
+From our analysis, we can conclude that cars with manual transmission get more mileage compared to automatic variant. When adjusted by other factors like number of cylinders, horsepower and weight, we can observe that there is a rise of 1.8 MPG.
+  
+  
+## Appendix
+Boxplot of MPG vs Mode of Transmission
+```{r}
+#Figure 1
+boxplot(mpg~am, data = mtcars, col = c("blue", "green"), xlab = "Mode of Transmission (0 = Automatic, 1 = Manual)", ylab = "Miles per Galon", main = "Miles per Galon vs Mode of Transmission")
+```
+  
+Scatterplot for "mtcars" dataset
+```{r}
+#Figure 2
+pairs(mpg~., data = mtcars)
+```
