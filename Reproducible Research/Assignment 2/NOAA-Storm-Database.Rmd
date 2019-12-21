@@ -1,0 +1,176 @@
+---
+title: "Exploration and Analysis of NOAA Storm Database"
+author: "akshayamrit"
+date: "25/08/2019"
+output: 
+  html_document
+---
+# Exploration and Analysis of NOAA Storm Database to Identify Most Harmful Events With Respect to Population Health and Economic Consequences
+Storm Data is an official publication of the National Oceanic and Atmospheric Administration (NOAA) which documents:  
+1. The occurrence of storms and other significant weather phenomena having sufficient intensity to cause loss of life, injuries, significant property damage, and/or disruption to commerce.  
+2. Rare, unusual, weather phenomena that generate media attention, such as snow flurries in South Florida or the San Diego coastal area.  
+3. Other significant meteorological events, such as record maximum or minimum temperatures or precipitation that occur in connection with another event.  
+According to NOAA, the data recording starts from Jan 1950. Data which we are using contains data from Jan 1950 to Nov 2011. Storm Data contains Date, Time, Event, Place of occurance, Damage, etc. We will be using this database to identify most harmful events with respect to population health as well as economic consequences.  
+
+## Data Processing:
+Before we get into the analysis, we will check whether we have the data or not. If the data is not present in our working directory, it will be downloaded.
+```{r}
+if(!file.exists("StormData.csv.bz2")) {
+      download.file(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", 
+                    destfile = "StormData.csv.bz2", method = "curl")
+}
+if(!file.exists("StromDataDoc.pdf")){
+      download.file(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf", 
+                    destfile = "StromDataDoc.pdf", method = "curl")
+}
+```
+We made sure that we have the data so we can start reading the data now. We will be reading the pdf documentation as well to extract categorized event types.
+```{r cache=TRUE}
+library(data.table)
+readTime <- proc.time()
+stormData <- fread("StormData.csv.bz2")
+proc.time()-readTime
+rm(readTime)
+```
+We have loaded the data but we need to know what the data looks like and isolate the data needed to answer our questions.
+```{r}
+dim(stormData)
+str(stormData)
+length(unique(stormData$EVTYPE))
+```
+By running the above code we observe that:  
+* We have several columns which are not needed for our analysis.  
+* We have several rows which does not contain any data on population health or economic consequences.  
+* There are __985__ types of events listed in the data provided but there are only __48__ events classified in the documentation.  
+  
+We need to fix the above problems before moving on to the analysis part. To do so, we need to:  
+* Remove unwanted columns from the table. We will remove all the columns which won't be necessary for fnding out the loss of or damage of human lives and loss of property.  
+* Remove rows containing redundant information. These rows include the data for events which did not cause any damage.   
+* Fix event names in data table to match with the event names provided in the documentation. To do this, we will be reading the PDF documentation which we have already downloaded in the first step. Now, as we did have to read the documentation to understand the data table, we started by looking up for the exact section where we will find the names of all the event type ie. '2.1.1   Storm Data Event Table'. After finding this value, we have extracted the lines which contained the event names and modified it according to our needs. Now, we compare these values to the event types present in the data table to reduce the number of unique variables as much as possible. We have used 'amatch' function to perform this activity. This function uses fuzzy logic to approximately match provided strings. We can change how close the match should be by adjusting 'max.distance' argument but for our current problem, we found out that it works best if we leave it at default which is '0.1'. If we increase it any further, it tends to match values which are not actually the same.
+```{r}
+# Removing unwanted columns from table:
+library(tidyverse)
+stormData <- stormData %>% select(c(BGN_DATE, COUNTY, COUNTYNAME, STATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP))
+
+# Removing redundant rows:
+stormData <- stormData %>% filter(FATALITIES != 0 | INJURIES != 0 | PROPDMG != 0 | CROPDMG != 0)
+
+# Changing format of Columns:
+library(lubridate)
+stormData$BGN_DATE <-  mdy_hms(stormData$BGN_DATE)
+stormData$EVTYPE <- str_squish(stormData$EVTYPE)
+stormData$PROPDMGEXP <- as.factor(str_to_upper(stormData$PROPDMGEXP))
+stormData$CROPDMGEXP <- as.factor(str_to_upper(stormData$CROPDMGEXP))
+
+# Using EXP columns to modify DMG and removing them.
+stormData <- stormData %>% 
+  mutate(PROPDMG = if_else(PROPDMGEXP %in% c("", "?", "-"), PROPDMG * 0, PROPDMG)) %>% 
+  mutate(PROPDMG = if_else(PROPDMGEXP %in% "+", PROPDMG * 1, PROPDMG)) %>% 
+  mutate(PROPDMG = if_else(PROPDMGEXP %in% "H", PROPDMG * 100, PROPDMG)) %>% 
+  mutate(PROPDMG = if_else(PROPDMGEXP %in% "K", PROPDMG * 1000, PROPDMG)) %>% 
+  mutate(PROPDMG = if_else(PROPDMGEXP %in% "M", PROPDMG * 1000000, PROPDMG)) %>% 
+  mutate(PROPDMG = if_else(PROPDMGEXP %in% "B", PROPDMG * 1000000000, PROPDMG))
+
+stormData <- stormData %>% 
+  mutate(CROPDMG = if_else(CROPDMGEXP %in% c("", "?", "-"), CROPDMG * 0, CROPDMG)) %>% 
+  mutate(CROPDMG = if_else(CROPDMGEXP %in% "+", CROPDMG * 1, CROPDMG)) %>% 
+  mutate(CROPDMG = if_else(CROPDMGEXP %in% "H", CROPDMG * 100, CROPDMG)) %>% 
+  mutate(CROPDMG = if_else(CROPDMGEXP %in% "K", CROPDMG * 1000, CROPDMG)) %>% 
+  mutate(CROPDMG = if_else(CROPDMGEXP %in% "M", CROPDMG * 1000000, CROPDMG)) %>% 
+  mutate(CROPDMG = if_else(CROPDMGEXP %in% "B", CROPDMG * 1000000000, CROPDMG))
+
+stormData <- stormData %>% select(-c(PROPDMGEXP, CROPDMGEXP))
+
+# Extracting list of events from Documentation.
+library(pdftools)
+documentation.events <- pdf_text("StromDataDoc.pdf") %>% read_lines()
+firstLine <- grep("2.1.1   Storm Data Event Table", documentation.events)
+documentation.events <- documentation.events[(firstLine + 2): (firstLine + 25)]
+rm(firstLine)
+documentation.events <- documentation.events %>% 
+  str_replace_all(pattern = "Z$", replacement = "") %>%
+  str_replace_all(pattern = "C$", replacement = "") %>%
+  str_replace_all(pattern = "M$", replacement = "") %>%
+  str_replace_all(pattern = " Z ", replacement = ".") %>%
+  str_replace_all(pattern = " C ", replacement = ".") %>%
+  str_replace_all(pattern = " M ", replacement = ".") %>%
+  strsplit(split = ".", fixed = TRUE) %>%
+  unlist() %>%
+  str_squish()
+
+# Modifying event types in stormData table to match with values present in documentation
+for(i in 1:length(documentation.events)){
+  stormData[agrepl(pattern = documentation.events[i], x = stormData$EVTYPE, ignore.case = TRUE),5] = documentation.events[i]
+}
+rm(i)
+```
+## Data Analysis:
+We have processed the data as much as possible, now we will be analyzing the data to answer our questions. Before starting that, let's look at how the data looks after all the processing.
+```{r}
+str(stormData)
+length(unique(stormData$EVTYPE))
+```
+We were able to reduce the number of event types to __234__ but we know that the number of events should be __48__. It is difficult to rename every event type manually so we will try to figure out whether it's necessary to answer our question. We need to figure out how many of those events need to be taken care of to be of any importance to us.
+### Identify Most Harmful Events With Respect to Population Health.
+To figure out whether we need to worry about the typos which are still present in the table, we will extract the necessary data from the table which we have already created. To do that, we need to follow these steps:  
+1. Group the data by event types and get their corresponding damage on human health.  
+2. Group every event which is not listed in the documentation into one category and compare its value to others.
+```{r}
+# Creating table to be used to answer our first query.
+stormData.harm <- stormData %>% 
+  group_by(year = year(BGN_DATE), EVTYPE) %>% 
+  summarize(pop.harm = sum(FATALITIES)+sum(INJURIES)) %>% 
+  arrange(year)
+
+# Determining whether typos in events will have impact on our result
+stormData.harm.analysis <- stormData.harm %>% 
+  group_by(EVTYPE) %>% 
+  summarize(pop.harm = sum(pop.harm)) %>% 
+  arrange(desc(pop.harm))
+stormData.harm.analysis <- stormData.harm.analysis %>% 
+  mutate(EVTYPE = if_else(!(str_to_upper(EVTYPE) %in% str_to_upper(documentation.events)), "Others", EVTYPE)) %>% 
+  group_by(EVTYPE) %>%
+  summarize(pop.harm = sum(pop.harm)) %>%
+  arrange(desc(pop.harm))
+```
+### Identify events that has the greatest economic consequences.
+These steps will be performed again, but we will focus economic consequences to answer our second part of the question.
+```{r}
+# Creating table to be used to answer our first query.
+stormData.damage <- stormData %>% 
+  group_by(year = year(BGN_DATE), EVTYPE) %>% 
+  summarize(eco.cq = sum(PROPDMG)+sum(CROPDMG)) %>% 
+  arrange(year)
+
+# Determining whether typos in events will have impact on our result
+stormData.damage.analysis <- stormData.damage %>% 
+  group_by(EVTYPE) %>% 
+  summarize(eco.cq = sum(eco.cq)) %>% 
+  arrange(desc(eco.cq))
+stormData.damage.analysis <- stormData.damage.analysis %>% 
+  mutate(EVTYPE = if_else(!(str_to_upper(EVTYPE) %in% str_to_upper(documentation.events)), "Others", EVTYPE)) %>% 
+  group_by(EVTYPE) %>%
+  summarize(eco.cq = sum(eco.cq)) %>%
+  arrange(desc(eco.cq))
+```
+## Results:
+### Which types of event is most harmful to population health?
+```{r cache=TRUE}
+head(stormData.harm.analysis, n = 10)
+
+# Visualizing table
+g.harm <- ggplot(data = stormData.harm.analysis, aes(x = "", y = pop.harm, fill = EVTYPE)) + geom_bar(stat = "identity")
+g.harm + coord_polar("y", start = 0) + labs(x = "", y = "Impact on Population Health", fill = "Event Types")
+```
+  
+Using the pie chart and the table above, we can conlcude that Tornado causes most harm to the population health. For the period of year 1950 to year 2011, Tornado has harmed __9,7068__ lives accross all states.
+### Which type of event has the greatest economic consequece?
+```{r cache=TRUE}
+head(stormData.damage.analysis, n = 10)
+
+# Visualizing table
+g.eco <- ggplot(data = stormData.damage.analysis, aes(x = "", y = eco.cq, fill = EVTYPE)) + geom_bar(stat = "identity")
+g.eco + coord_polar("y", start = 0) + labs(x = "", y = "Economic Consequences", fill = "Event Types")
+```
+  
+Using the table and pie chart above, we can conclude that Flood has the greatest impact on economy. For the period of year 1950 to year 2011, Flood has damaged property worth __$179,909,849,807__ across all states.

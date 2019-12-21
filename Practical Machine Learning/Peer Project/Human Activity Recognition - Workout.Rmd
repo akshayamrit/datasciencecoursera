@@ -1,0 +1,115 @@
+---
+title: "Human Activity Recognition - Workout"
+author: "Akshay Amrit"
+date: "20th December, 2019"
+output: html_document
+---
+
+
+## Summary
+This report is the final course project for the course [**Practical Machine Learning**](https://www.coursera.org/learn/practical-machine-learning/home/welcome) which is a part of [**Data Science Specialization**](https://www.coursera.org/specializations/jhu-data-science) by Johns Hopkins University on Coursera.  
+  
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, my goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants.  
+  
+They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).  
+  
+Using the collected data, I will build a machine learning model which will categorize the data into A, B, C, D and E category which specifies how well the workout has been done.  
+  
+  
+## Getting and Cleaning Data  
+Source: [**Human Activity Recognition**](http://groupware.les.inf.puc-rio.br/har)  
+Training Data: [**pml_training**](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)  
+Test Data: [**pml_testing**](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)  
+  
+Loading Libraries:
+```{r results='hide', message=FALSE, warning=FALSE}
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(corrplot)
+```
+  
+Downloading Data:
+```{r message=FALSE, warning=FALSE}
+if(!file.exists("pml-training.csv")){
+      download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", 
+                    destfile = "pml-training.csv")
+}
+if(!file.exists("pml-testing.csv")){
+      download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
+                    destfile = "pml-testing.csv")
+}
+pml_training <- read_csv("pml-training.csv", na = c("#DIV/0!", "NA", ""))
+pml_testing <- read_csv("pml-testing.csv", na = c("#DIV/0!", "NA", ""))
+```
+  
+Analysing Data: 
+```{r}
+dim(pml_training)
+table(complete.cases(pml_training))
+```
+From above table, we can conclude that every row contains NULL value. If the NULL values are not required to create our model, it can cause the model to give wrong impression of the data and it is better if we filter it out.  
+I will set the threshold for inclusion of column to have at least 80% of its field NOT NULL.
+```{r}
+relevent_col <- colnames(pml_training)[apply(is.na(pml_training), 2, sum) < (0.8 * nrow(pml_training))]
+length(relevent_col)
+```
+I have reduced the number of relevent columns from 160 to 60. Let us take a look at the names of the columns which have been included.
+```{r}
+print(relevent_col)
+```
+There are still many columns which doesn't need to be included into the modeling as their values aren't going to add anything to our prediction. For example, we don't need the time at which the observations were taken, or the name of persons, etc. I will only keep the columns which contain the data from the devices and their classification,'classe'.
+```{r}
+relevent_col <- relevent_col[grep(pattern = "_belt|_arm|_dumbbell|_forearm", x = relevent_col)]
+pml_training <- pml_training[,c(relevent_col, "classe")]
+pml_training$classe <- factor(pml_training$classe)
+pml_testing <- pml_testing[,relevent_col]
+table(complete.cases(pml_training))
+table(complete.cases(pml_training))
+```
+At this point, I have cleaned up all the mess I could have from the dataset and I am ready to move into the next section.  
+  
+  
+## Exploratory Data Analysis
+Before starting with any kind of analysis, I will distribute the training set into training and validation set so that I can try different models without touching the test data and get an estimate of the accuracy of our models.
+```{r}
+set.seed(666)
+inTrain <- createDataPartition(pml_training$classe, p = 0.8, list = FALSE)
+training <- pml_training[inTrain,]
+validation <- pml_training[-inTrain,]
+dim(training)
+dim(validation)
+```
+Now, I will check the correlation between every variable in the data set.
+```{r}
+cor_matrix <- cor(training[sapply(training, is.numeric)])
+corrplot(corr = cor_matrix, order = "FPC", method = "square", tl.cex = 0.45, tl.col = "black", number.cex = 0.25)
+```
+From the plot, I can infer that there are a few variables which are highly co̥rrelated. Using dimension reduction techniques such as PCA can be used to leverage speed over accuracy but as my model without preprocessing takes less than 2 minute on my system, I will build the model without any preprocessing.  
+  
+  
+## Model Selection and Creation
+For this kind of problem, when we have to solve classification problem using a large dataset and our focus is accuracy, Random Forest is the safest bet.
+```{r}
+time1 <- proc.time()
+model_rf <- randomForest(classe ~ ., data = training)
+time2 <- proc.time()
+time2
+# Just to check which variables more important.
+varImpPlot(model_rf)
+# Now I will test this model on validation data set to check the accuracy of the model.
+pred_rf <- predict(model_rf, validation)
+confusionMatrix(validation$classe, pred_rf)
+```
+  
+  
+## Course Project Prediction Quiz
+Applying the model to the pml_testing dataset.
+```{r}
+pred_test <- predict(model_rf, pml_testing)
+pred_test
+```
+  
+  
+## Result
+'Validation' dataset was separated from the training data set before modeling so we can conclude that out of sample accuracy of our model is **99.72%**.  
