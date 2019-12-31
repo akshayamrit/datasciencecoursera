@@ -1,0 +1,13 @@
+---
+title: "Leaflet Demonstration"
+author: "Akshay Amrit"
+date: "25th December, 2019"
+output: html_document
+---
+  
+  
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(leaflet)
+my_institute <- data.frame(Name = "Praxis Business School", lat = 12.9187873, lng = 77.6513048)
+my_institute %>% leaflet() %>% addTiles() %>% addMarkers(popup = my_institute[,1])
+```

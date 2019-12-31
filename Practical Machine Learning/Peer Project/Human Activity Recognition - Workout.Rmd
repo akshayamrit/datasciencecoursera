@@ -84,7 +84,8 @@ Now, I will check the correlation between every variable in the data set.
 ```{r}
 cor_matrix <- cor(training[sapply(training, is.numeric)])
 corrplot(corr = cor_matrix, order = "FPC", method = "square", tl.cex = 0.45, tl.col = "black", number.cex = 0.25)
-```
+```  
+  
 From the plot, I can infer that there are a few variables which are highly co̥rrelated. Using dimension reduction techniques such as PCA can be used to leverage speed over accuracy but as my model without preprocessing takes less than 2 minute on my system, I will build the model without any preprocessing.  
   
   

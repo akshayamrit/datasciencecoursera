@@ -1,0 +1,26 @@
+---
+title: 'Developing Data Products: Week 3'
+author: "Akshay Amrit"
+date: "26th December, 2019"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Objective  
+This is a web page presentation created using R Markdown and Plotly. This presentation is created as
+Peer Project for Week 3 of [**Developing Data Products**](https://www.coursera.org/learn/data-products/home/welcome) which is a part of [**Data Science Specialization**](https://www.coursera.org/specializations/jhu-data-science) by Johns Hopkins University on Coursera.
+
+
+## Graph Created Using Plotly
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(plotly)
+library(ggplot2)
+data("mtcars")
+mtcars$cyl <- factor(mtcars$cyl)
+g <- ggplot(data = mtcars, aes(y = mpg, x = hp, colour = cyl)) + geom_point() + geom_smooth(method = "lm")
+py <- ggplotly(g)
+py
+```
