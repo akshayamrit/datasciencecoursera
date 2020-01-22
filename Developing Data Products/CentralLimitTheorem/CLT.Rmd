@@ -11,24 +11,44 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Objective  
 This is a web page presentation created using R Markdown. This presentation is created as Final 
-Peer Project of [**Developing Data Products**](https://www.coursera.org/learn/data-products/home/welcome) which is a part of [**Data Science Specialization**](https://www.coursera.org/specializations/jhu-data-science) by Johns Hopkins University on Coursera.
+Peer Project of [**Developing Data Products**](https://www.coursera.org/learn/data-products/home/welcome) which is a part of [**Data Science Specialization**](https://www.coursera.org/specializations/jhu-data-science) by Johns Hopkins University on Coursera.  
+  
+The objective of this project is to prove Central Limit Theorem Experimentally.
 
 
-## Slide with Bullets
+## Process
+User can select the range of numbers, sample size and the number of samples. When we increase the number
+of sample to 1000s, the histogram starts looking like a normal graph which indicates that as the number
+of sample tends to infinity, the mean of population is the mean of the range of numbers.  
+  
+When the user clicks on the submit button, the application  
+1. Creates samples of sepcified size. It should be noted that the numbers are replaced during sampling.  
+2. Finds out the average of each sample.  
+3. Creates the histogram of the averages.
 
-- Bullet 1
-- Bullet 2
-- Bullet 3
 
-## Slide with R Output
-
-```{r cars, echo = TRUE}
-summary(cars)
+## Code  
+  
+```{r echo = TRUE, eval=FALSE}
+mean_pop <- reactive({
+        range_min <- input$range[1]
+        range_max <- input$range[2]
+        averages <- range_min:range_max
+        set.seed(666)
+        for (i in 1:input$num_sample) {
+            averages[i] <- mean(sample(range_min:range_max, 
+                                       input$sample_size, 
+                                       replace = TRUE))
+        }
+        averages <- data.frame(averages)
+        return(averages)
+    })
 ```
-
-## Slide with Plot
-
-```{r pressure}
-plot(pressure)
-```
-
+  
+  
+## Shiny Application
+You may access the shiny application here:  
+[**Shiny Application**](https://akshayamrit.shinyapps.io/CentralLimitTheorem/)  
+  
+To check out the code for the application, click her:  
+[**GitHub Repository**](https://github.com/akshayamrit/CentralLimitTheorem.git)  
