@@ -1,7 +1,7 @@
 ---
 title: "Central Limit Theorem"
 author: "Akshay Amrit"
-date: "31st December, 2019"
+date: "25th June, 2020"
 output: ioslides_presentation
 ---
 
@@ -10,10 +10,17 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ## Objective  
-This is a web page presentation created using R Markdown. This presentation is created as Final 
-Peer Project of [**Developing Data Products**](https://www.coursera.org/learn/data-products/home/welcome) which is a part of [**Data Science Specialization**](https://www.coursera.org/specializations/jhu-data-science) by Johns Hopkins University on Coursera.  
+This is a web page presentation created using R Markdown. This presentation is created 
+to demonstrate my understanding of the topic. Being a very important concept which 
+is also often not well understood, I will be demonstrating the concept visually 
+using the shiny package.
+
   
-The objective of this project is to prove Central Limit Theorem Experimentally.
+#### Definition:
+Central Limit Theorem. The central limit theorem states that if you have a population
+with mean μ and standard deviation σ and take sufficiently large random samples from 
+the population with replacement , then the distribution of the sample means will be 
+approximately normally distributed.
 
 
 ## Process
@@ -22,7 +29,8 @@ of sample to 1000s, the histogram starts looking like a normal graph which indic
 of sample tends to infinity, the mean of population is the mean of the range of numbers.  
   
 When the user clicks on the submit button, the application  
-1. Creates samples of sepcified size. It should be noted that the numbers are replaced during sampling.  
+1. Creates samples of sepcified size. It should be noted that the numbers are replaced during sampling and 
+every number has equal chance of getting selected.  
 2. Finds out the average of each sample.  
 3. Creates the histogram of the averages.
 
@@ -50,5 +58,5 @@ mean_pop <- reactive({
 You may access the shiny application here:  
 [**Shiny Application**](https://akshayamrit.shinyapps.io/CentralLimitTheorem/)  
   
-To check out the code for the application, click her:  
-[**GitHub Repository**](https://github.com/akshayamrit/CentralLimitTheorem.git)  
+To check out the code for the application, click here:  
+[**GitHub Repository**](https://github.com/akshayamrit/CentralLimitTheorem.git) 

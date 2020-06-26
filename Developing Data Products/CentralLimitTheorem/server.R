@@ -27,7 +27,7 @@ shinyServer(function(input, output) {
 
     output$range_mean <- reactive({round(mean(input$range[1]:input$range[2]), 2)})
     output$sample_mean <- reactive({round(mean(mean_pop()[,1]), 2)})
-    output$sample_median <- reactive({round(median(mean_pop()[,1]), 2)})
+    output$population_sd <- reactive({round(sd(input$range[1]:input$range[2]), 2)})
     output$sample_sd <- reactive({round(sd(mean_pop()[,1]), 2)})
     
     output$Clt_Hist <- renderGvis({
